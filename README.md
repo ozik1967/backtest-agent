@@ -47,11 +47,17 @@ Users select a trading strategy, configure parameters, pay **0.01 MNT** via Meta
 | Data | Bybit Futures klines, funding rate history |
 | Infrastructure | VPS (Ubuntu 24.04), nginx, Let's Encrypt SSL, systemd |
 
-## Smart Contract (Mantle Sepolia)
+## Smart Contract (ERC-8004)
+
+### Mantle Mainnet
 - **Contract**: `0xA05eb19EaeB861a70450108cA0bA4734f0996811`
 - **Agent ID**: `0x3de0649cba34988b6b8455e7a890eacecb1fd001c52550dfec11440f93ed78a2`
 - **Standard**: ERC-8004 (Agent Identity & Reputation)
-- **Network**: Mantle Sepolia (Chain ID 5003)
+- **Chain ID**: 5000
+
+### Mantle Sepolia (Testnet)
+- **Contract**: `0xA05eb19EaeB861a70450108cA0bA4734f0996811`
+- **Chain ID**: 5003
 
 ## Agent Card
 [https://alphaterminal.live/agent-card.json](https://alphaterminal.live/agent-card.json)
@@ -80,45 +86,21 @@ alphaterminal.live (nginx + TLS)
 4. Backend verifies tx on Mantle Sepolia via web3.py
 5. Backtest executes and results are returned
 
-## How to Run Locally
-```bash
-cd backend
-pip install -r requirements.txt
-
-# Copy and configure env
-cp .env.example .env
-# Set MANTLE_RPC, AGENT_WALLET, SKIP_PAYMENT=true (for local dev)
-
-uvicorn main:app --port 8001 --reload
-```
-
-Then open `frontend/index.html` in a browser (or serve with any static server).
+## Backend
+Backend is proprietary. Live demo: https://alphaterminal.live
 
 ## Project Structure
 ```
 backtest-agent/
-├── backend/
-│   ├── main.py                  # FastAPI app entry
-│   ├── bybit_client.py          # Bybit API wrapper
-│   ├── payment.py               # x402 tx verification
-│   ├── routers/
-│   │   ├── backtest.py          # POST /api/backtest
-│   │   └── validate.py          # POST /api/validate-ticker
-│   └── strategies/
-│       ├── base.py              # Trade dataclass, metrics
-│       ├── ma_cross.py          # MA/EMA Cross
-│       ├── rsi.py               # RSI
-│       ├── bollinger.py         # Bollinger Bands
-│       ├── macd.py              # MACD
-│       ├── cvd.py               # CVD
-│       └── funding_rate.py      # Funding Rate
 ├── frontend/
-│   └── index.html               # Single-file React SPA
+│   ├── index.html              # Single-file React SPA
+│   └── agent-card.json         # ERC-8004 Agent Card
 ├── contracts/
 │   └── BacktestAgentRegistry.sol  # ERC-8004 contract
-└── deploy/
-    ├── setup_vps.sh             # VPS bootstrap script
-    └── deploy_contract.js       # Hardhat deployment
+├── deploy/
+│   ├── deploy.js               # Hardhat deployment
+│   └── hardhat.config.js       # Network config
+└── README.md
 ```
 
 ## Hackathon
