@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlphaTerminal — BacktestStrategyAgent</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0b0f;
+      --surface: #111318;
+      --border: #1e2130;
+      --accent: #00d4aa;
+      --accent2: #7c3aed;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --green: #22c55e;
+      --red: #ef4444;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+    .logo span { color: var(--text); }
+
+    .wallet-btn {
+      background: var(--accent2);
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      transition: opacity 0.15s;
+    }
+    .wallet-btn:hover { opacity: 0.85; }
+    .wallet-btn.connected { background: #1a3a2a; color: var(--accent); border: 1px solid var(--accent); }
+
+    .main {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 24px;
+      padding: 24px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 5px;
+      letter-spacing: 0.5px;
+    }
+
+    select, input[type="text"], input[type="number"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .range-value {
+      text-align: center;
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .direction-toggle {
+      display: flex;
+      gap: 6px;
+    }
+    .dir-btn {
+      flex: 1;
+      padding: 7px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.5px;
+    }
+    .dir-btn.active { border-color: var(--accent); color: var(--accent); background: #0a2420; }
+    .dir-btn.active.short { border-color: var(--red); color: var(--red); background: #2a0a0a; }
+    .dir-btn.active.both { border-color: var(--accent2); color: var(--accent2); background: #1a0a2a; }
+
+    .run-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--accent) 0%, #00b894 100%);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: 0.5px;
+    }
+    .run-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .metric {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+    .metric-label {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .metric-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .metric-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .metric-value.green { color: var(--green); }
+    .metric-value.red { color: var(--red); }
+    .metric-value.accent { color: var(--accent); }
+
+    .chart-wrap {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      height: 260px;
+      position: relative;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    thead th {
+      text-align: left;
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    tbody td { padding: 8px 10px; }
+    .tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .tag-long { background: #0a2420; color: var(--green); border: 1px solid #1a4a3a; }
+    .tag-short { background: #2a0a0a; color: var(--red); border: 1px solid #4a1a1a; }
+    .tag-tp { background: #0a2420; color: var(--green); }
+    .tag-sl { background: #2a0a0a; color: var(--red); }
+    .tag-signal { background: #1a1a2a; color: #818cf8; }
+    .tag-end { background: #1a1a1a; color: var(--muted); }
+
+    .error-box {
+      background: #2a0a0a;
+      border: 1px solid var(--red);
+      border-radius: 8px;
+      padding: 14px;
+      color: var(--red);
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .warn-box {
+      background: #2a1800;
+      border: 1px solid var(--warn);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--warn);
+      font-size: 12px;
+      margin-bottom: 14px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0,212,170,0.3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 300px;
+      color: var(--muted);
+      font-size: 13px;
+      gap: 8px;
+    }
+    .empty-icon { font-size: 40px; opacity: 0.3; }
+
+    .feedback-section {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .stars {
+      display: flex;
+      gap: 4px;
+      margin: 8px 0;
+    }
+    .star { font-size: 22px; cursor: pointer; transition: transform 0.1s; }
+    .star:hover { transform: scale(1.2); }
+
+    @media (max-width: 900px) {
+      .main { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    const API_BASE = window.location.hostname === "localhost"
+      ? "http://localhost:8000/api"
+      : "/api";
+
+    const MANTLE_CHAIN_ID = "0x138B"; // 5003 Sepolia testnet
+    const CONTRACT_ADDRESS = "0xA05eb19EaeB861a70450108cA0bA4734f0996811";
+    const AGENT_WALLET = "0x0eF0Fa79e214f2a86D92EB1f5519CfF8ba30604e";
+    const PAYMENT_AMOUNT = "0x2386F26FC10000"; // 0.01 MNT in wei (hex)
+
+    const POPULAR_TICKERS = [
+      "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
+      "AVAXUSDT","DOGEUSDT","ADAUSDT","LINKUSDT","POLUSDT",
+      "LTCUSDT","DOTUSDT","ATOMUSDT","NEARUSDT","APTUSDT",
+    ];
+
+    const STRATEGIES = [
+      { value: "MA_CROSS", label: "MA Cross", hasMaPeriods: true },
+      { value: "EMA_CROSS", label: "EMA Cross", hasMaPeriods: true },
+      { value: "RSI", label: "RSI" },
+      { value: "BOLLINGER", label: "Bollinger Bands" },
+      { value: "CVD", label: "CVD (Volume Delta)" },
+      { value: "MACD", label: "MACD" },
+      { value: "FUNDING_RATE", label: "Funding Rate" },
+    ];
+
+    const MA_PRESETS = [
+      { label: "9/21", fast: 9, slow: 21 },
+      { label: "9/50", fast: 9, slow: 50 },
+      { label: "9/99", fast: 9, slow: 99 },
+      { label: "20/50", fast: 20, slow: 50 },
+      { label: "50/200", fast: 50, slow: 200 },
+      { label: "Custom", fast: null, slow: null },
+    ];
+
+    function formatDate(iso) {
+      if (!iso) return "-";
+      return new Date(iso).toLocaleString("en-GB", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function PnlCell({ val }) {
+      const cls = val > 0 ? "green" : val < 0 ? "red" : "";
+      return <span style={{ color: val > 0 ? "var(--green)" : val < 0 ? "var(--red)" : "inherit" }}>
+        {val > 0 ? "+" : ""}{val.toFixed(2)}%
+      </span>;
+    }
+
+    function EquityChart({ trades }) {
+      const ref = useRef(null);
+      const chartRef = useRef(null);
+
+      useEffect(() => {
+        if (!ref.current) return;
+        if (chartRef.current) chartRef.current.destroy();
+
+        let equity = 100;
+        const labels = ["Start"];
+        const data = [equity];
+        trades.forEach((t, i) => {
+          equity = equity * (1 + t.pnl / 100);
+          labels.push(`#${i + 1}`);
+          data.push(parseFloat(equity.toFixed(2)));
+        });
+
+        const color = equity >= 100 ? "#00d4aa" : "#ef4444";
+
+        chartRef.current = new Chart(ref.current, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [{
+              label: "Equity",
+              data,
+              borderColor: color,
+              backgroundColor: color + "18",
+              fill: true,
+              tension: 0.3,
+              pointRadius: trades.length > 100 ? 0 : 3,
+              borderWidth: 2,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { color: "#64748b", font: { family: "JetBrains Mono", size: 10 } }, grid: { color: "#1e2130" } },
+              y: { ticks: { color: "#64748b", font: { family: "JetBrains Mono", size: 10 }, callback: v => v + "%" }, grid: { color: "#1e2130" } }
+            }
+          }
+        });
+        return () => { if (chartRef.current) chartRef.current.destroy(); };
+      }, [trades]);
+
+      return <canvas ref={ref} />;
+    }
+
+    function FeedbackSection({ agentId, contractAddress, wallet }) {
+      const [score, setScore] = useState(0);
+      const [hover, setHover] = useState(0);
+      const [sending, setSending] = useState(false);
+      const [sent, setSent] = useState(false);
+
+      const sendFeedback = async () => {
+        if (!wallet || !score) return;
+        setSending(true);
+        try {
+          const data = contractAddress
+            ? `0x${/* giveFeedback(agentId, score, "starred", "") */ "placeholder"}`
+            : null;
+          // For demo: just show confirmation
+          await new Promise(r => setTimeout(r, 800));
+          setSent(true);
+        } catch(e) { console.error(e); }
+        setSending(false);
+      };
+
+      if (sent) return <div className="feedback-section" style={{color:"var(--green)"}}>✓ Thank you for your feedback!</div>;
+
+      return (
+        <div className="feedback-section">
+          <div style={{fontSize:11,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Rate this agent</div>
+          <div className="stars">
+            {[20,40,60,80,100].map(v => (
+              <span key={v} className="star"
+                onMouseEnter={() => setHover(v)}
+                onMouseLeave={() => setHover(0)}
+                onClick={() => setScore(v)}
+              >
+                {(hover || score) >= v ? "★" : "☆"}
+              </span>
+            ))}
+          </div>
+          {score > 0 && (
+            <button className="run-btn" style={{marginTop:8,maxWidth:200}}
+              onClick={sendFeedback} disabled={sending || !wallet}>
+              {sending ? <><span className="spinner"/>Sending...</> : "Submit Feedback"}
+            </button>
+          )}
+          {!wallet && <div style={{fontSize:11,color:"var(--muted)",marginTop:6}}>Connect wallet to submit feedback</div>}
+        </div>
+      );
+    }
+
+    function App() {
+      const [wallet, setWallet] = useState(null);
+      const [form, setForm] = useState({
+        ticker: "BTCUSDT",
+        customTicker: "",
+        strategy: "MA_CROSS",
+        maPreset: "9/21",
+        fastPeriod: 9,
+        slowPeriod: 21,
+        maType: "EMA",
+        timeframe: "1h",
+        deposit: 1000,
+        marginPct: 10,
+        leverage: 10,
+        slPct: 2,
+        tpPct: 4,
+        depthDays: 90,
+        direction: "BOTH",
+        // MACD params
+        macdFast: 12,
+        macdSlow: 26,
+        macdSignal: 9,
+      });
+      const [loading, setLoading] = useState(false);
+      const [result, setResult] = useState(null);
+      const [error, setError] = useState(null);
+      const [warnings, setWarnings] = useState([]);
+
+      const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
+
+      const selectedStrategy = STRATEGIES.find(s => s.value === form.strategy);
+      const hasMaPeriods = selectedStrategy?.hasMaPeriods;
+
+      const connectWallet = async () => {
+        if (!window.ethereum) { alert("MetaMask not found"); return; }
+        try {
+          const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+          setWallet(accounts[0]);
+          // Switch to Mantle
+          try {
+            await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: MANTLE_CHAIN_ID }] });
+          } catch (e) {
+            if (e.code === 4902) {
+              await window.ethereum.request({
+                method: "wallet_addEthereumChain",
+                params: [{
+                  chainId: MANTLE_CHAIN_ID,
+                  chainName: "Mantle Sepolia Testnet",
+                  nativeCurrency: { name: "MNT", symbol: "MNT", decimals: 18 },
+                  rpcUrls: ["https://rpc.sepolia.mantle.xyz"],
+                  blockExplorerUrls: ["https://explorer.sepolia.mantle.xyz"],
+                }]
+              });
+            }
+          }
+        } catch (e) { console.error(e); }
+      };
+
+      const waitForReceipt = async (txHash, timeoutMs = 60000) => {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+          const receipt = await window.ethereum.request({
+            method: "eth_getTransactionReceipt",
+            params: [txHash],
+          });
+          if (receipt) {
+            if (receipt.status === "0x0") throw new Error("Transaction reverted");
+            return receipt;
+          }
+          await new Promise(r => setTimeout(r, 2000));
+        }
+        throw new Error("Transaction not confirmed in 60s");
+      };
+
+      const sendPayment = async () => {
+        if (!wallet || !window.ethereum) throw new Error("No wallet");
+        const txHash = await window.ethereum.request({
+          method: "eth_sendTransaction",
+          params: [{
+            from: wallet,
+            to: AGENT_WALLET,
+            value: PAYMENT_AMOUNT,
+          }]
+        });
+        // Poll until tx is mined (up to 60s)
+        await waitForReceipt(txHash);
+        return txHash;
+      };
+
+      const runBacktest = async () => {
+        setLoading(true);
+        setError(null);
+        setResult(null);
+        setWarnings([]);
+
+        try {
+          const ticker = form.customTicker || form.ticker;
+
+          let txHash = null;
+          if (wallet) {
+            try {
+              txHash = await sendPayment();
+            } catch (e) {
+              setError("Платёж отменён или не прошёл. Попробуйте снова.");
+              setLoading(false);
+              return;
+            }
+          }
+
+          const body = {
+            ticker,
+            strategy: form.strategy,
+            timeframe: form.timeframe,
+            depth_days: parseInt(form.depthDays),
+            deposit: parseFloat(form.deposit),
+            margin_pct: parseFloat(form.marginPct),
+            leverage: parseFloat(form.leverage),
+            sl_pct: parseFloat(form.slPct),
+            tp_pct: parseFloat(form.tpPct),
+            direction: form.direction,
+            ma_type: form.maType,
+            macd_fast: parseInt(form.macdFast),
+            macd_slow: parseInt(form.macdSlow),
+            macd_signal: parseInt(form.macdSignal),
+            tx_hash: txHash,
+          };
+
+          if (hasMaPeriods) {
+            body.fast_period = parseInt(form.fastPeriod);
+            body.slow_period = parseInt(form.slowPeriod);
+          }
+
+          const resp = await fetch(`${API_BASE}/backtest`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          const data = await resp.json();
+          if (data.status === "error") {
+            setError(data.message || (data.errors && data.errors.join(", ")) || "Unknown error");
+            if (data.warnings) setWarnings(data.warnings);
+          } else {
+            setResult(data);
+            if (data.warnings) setWarnings(data.warnings);
+          }
+        } catch (e) {
+          setError("Network error: " + e.message);
+        }
+        setLoading(false);
+      };
+
+      const shortWallet = wallet ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : null;
+
+      return (
+        <>
+          <header>
+            <div className="logo">alpha<span>terminal</span></div>
+            <button className={`wallet-btn ${wallet ? "connected" : ""}`} onClick={connectWallet}>
+              {wallet ? `✓ ${shortWallet}` : "Connect MetaMask"}
+            </button>
+          </header>
+
+          <div className="main">
+            {/* ── LEFT PANEL: Form ── */}
+            <div>
+              <div className="panel">
+                <div className="panel-title">Strategy Parameters</div>
+
+                {/* Ticker */}
+                <div className="field">
+                  <label>TICKER</label>
+                  <select value={form.ticker} onChange={e => set("ticker", e.target.value)}>
+                    {POPULAR_TICKERS.map(t => <option key={t}>{t}</option>)}
+                    <option value="">Custom...</option>
+                  </select>
+                  {form.ticker === "" && (
+                    <input type="text" placeholder="e.g. SOLUSDT"
+                      value={form.customTicker}
+                      onChange={e => set("customTicker", e.target.value.toUpperCase())}
+                      style={{marginTop:6}}
+                    />
+                  )}
+                </div>
+
+                {/* Strategy */}
+                <div className="field">
+                  <label>STRATEGY</label>
+                  <select value={form.strategy} onChange={e => set("strategy", e.target.value)}>
+                    {STRATEGIES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
+
+                {/* MA/EMA params */}
+                {hasMaPeriods && (
+                  <>
+                    <div className="field">
+                      <label>MA PRESET</label>
+                      <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                        {MA_PRESETS.map(p => (
+                          <button key={p.label}
+                            className={`dir-btn ${form.maPreset === p.label ? "active" : ""}`}
+                            style={{flex:"none",padding:"5px 10px"}}
+                            onClick={() => {
+                              set("maPreset", p.label);
+                              if (p.fast) { set("fastPeriod", p.fast); set("slowPeriod", p.slow); }
+                            }}
+                          >{p.label}</button>
+                        ))}
+                      </div>
+                    </div>
+                    {form.maPreset === "Custom" && (
+                      <div className="row-2">
+                        <div className="field">
+                          <label>FAST PERIOD</label>
+                          <input type="number" min="1" value={form.fastPeriod} onChange={e => set("fastPeriod", e.target.value)} />
+                        </div>
+                        <div className="field">
+                          <label>SLOW PERIOD</label>
+                          <input type="number" min="2" value={form.slowPeriod} onChange={e => set("slowPeriod", e.target.value)} />
+                        </div>
+                      </div>
+                    )}
+                    {form.strategy === "MA_CROSS" && (
+                      <div className="field">
+                        <label>MA TYPE</label>
+                        <div style={{display:"flex",gap:6}}>
+                          {["SMA","EMA"].map(t => (
+                            <button key={t} className={`dir-btn ${form.maType === t ? "active" : ""}`}
+                              onClick={() => set("maType", t)}>{t}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Timeframe */}
+                <div className="field">
+                  <label>TIMEFRAME</label>
+                  <select value={form.timeframe} onChange={e => set("timeframe", e.target.value)}>
+                    {["5m","15m","1h","4h","1d"].map(tf => <option key={tf}>{tf}</option>)}
+                  </select>
+                </div>
+
+                {/* MACD params */}
+                {form.strategy === "MACD" && (
+                  <>
+                    <div className="row-2">
+                      <div className="field">
+                        <label>FAST EMA</label>
+                        <input type="number" min="2" max="200" step="1"
+                          value={form.macdFast}
+                          onChange={e => set("macdFast", e.target.value)} />
+                      </div>
+                      <div className="field">
+                        <label>SLOW EMA</label>
+                        <input type="number" min="3" max="500" step="1"
+                          value={form.macdSlow}
+                          onChange={e => set("macdSlow", e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="field">
+                      <label>SIGNAL PERIOD</label>
+                      <input type="number" min="2" max="100" step="1"
+                        value={form.macdSignal}
+                        onChange={e => set("macdSignal", e.target.value)} />
+                    </div>
+                    {parseInt(form.macdFast) >= parseInt(form.macdSlow) && (
+                      <div className="error-box" style={{marginBottom:10,fontSize:11}}>
+                        Fast EMA должен быть меньше Slow EMA
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Deposit */}
+                <div className="field">
+                  <label>DEPOSIT (USDT)</label>
+                  <input type="number" min="10" max="1000000" step="10"
+                    value={form.deposit} onChange={e => set("deposit", e.target.value)} />
+                </div>
+
+                {/* Margin */}
+                <div className="field">
+                  <label>MARGIN PER TRADE</label>
+                  <input type="range" min="1" max="100" value={form.marginPct}
+                    onChange={e => set("marginPct", e.target.value)} />
+                  <div className="range-labels"><span>1%</span><span>100%</span></div>
+                  <div className="range-value">
+                    {form.marginPct}%
+                    <span style={{color:"var(--muted)",fontSize:11,marginLeft:8}}>
+                      = ${(form.deposit * form.marginPct / 100).toLocaleString(undefined,{maximumFractionDigits:0})} USDT
+                    </span>
+                  </div>
+                </div>
+
+                {/* Leverage */}
+                <div className="field">
+                  <label>LEVERAGE</label>
+                  <input type="range" min="1" max="50" value={form.leverage}
+                    onChange={e => set("leverage", e.target.value)} />
+                  <div className="range-labels"><span>1x</span><span>50x</span></div>
+                  <div className="range-value">
+                    {form.leverage}x
+                    <span style={{color:"var(--muted)",fontSize:11,marginLeft:8}}>
+                      pos. ${(form.deposit * form.marginPct / 100 * form.leverage).toLocaleString(undefined,{maximumFractionDigits:0})} USDT
+                    </span>
+                  </div>
+                </div>
+
+                {/* SL / TP */}
+                <div className="row-2">
+                  <div className="field">
+                    <label>STOP LOSS %</label>
+                    <input type="number" min="0.1" max="100" step="0.1" value={form.slPct}
+                      onChange={e => set("slPct", e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>TAKE PROFIT %</label>
+                    <input type="number" min="0.1" step="0.1" value={form.tpPct}
+                      onChange={e => set("tpPct", e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Depth */}
+                <div className="field">
+                  <label>DEPTH (DAYS)</label>
+                  <input type="range" min="1" max="180" value={form.depthDays}
+                    onChange={e => set("depthDays", e.target.value)} />
+                  <div className="range-labels"><span>1d</span><span>180d</span></div>
+                  <div className="range-value">{form.depthDays} days</div>
+                </div>
+
+                {/* Direction */}
+                <div className="field">
+                  <label>DIRECTION</label>
+                  <div className="direction-toggle">
+                    <button className={`dir-btn ${form.direction === "LONG" ? "active" : ""}`}
+                      onClick={() => set("direction", "LONG")}>LONG</button>
+                    <button className={`dir-btn short ${form.direction === "SHORT" ? "active short" : ""}`}
+                      onClick={() => set("direction", "SHORT")}>SHORT</button>
+                    <button className={`dir-btn both ${form.direction === "BOTH" ? "active both" : ""}`}
+                      onClick={() => set("direction", "BOTH")}>BOTH</button>
+                  </div>
+                </div>
+
+                {(form.marginPct / 100) * form.leverage * (form.slPct / 100) >= 1 && (
+                  <div className="warn-box" style={{marginBottom:10}}>
+                    ☠ Одна сделка может ликвидировать весь депозит — уменьшите margin, leverage или SL
+                  </div>
+                )}
+                {!wallet && (
+                  <div className="warn-box" style={{marginBottom:10}}>
+                    ⚠ Connect MetaMask to pay 0.01 MNT per backtest
+                  </div>
+                )}
+
+                <button className="run-btn" onClick={runBacktest} disabled={loading}>
+                  {loading ? <><span className="spinner"/>Running...</> : "▶ Run Backtest"}
+                </button>
+              </div>
+            </div>
+
+            {/* ── RIGHT PANEL: Results ── */}
+            <div>
+              {error && <div className="error-box">✗ {error}</div>}
+              {warnings.map((w, i) => <div key={i} className="warn-box">⚠ {w}</div>)}
+
+              {!result && !loading && (
+                <div className="panel">
+                  <div className="empty-state">
+                    <div className="empty-icon">⚡</div>
+                    <div>Configure your strategy and run a backtest</div>
+                    <div style={{color:"var(--accent)",fontSize:11}}>Powered by Bybit Futures · Pay-per-use on Mantle</div>
+                  </div>
+                </div>
+              )}
+
+              {loading && (
+                <div className="panel">
+                  <div className="empty-state">
+                    <span className="spinner" style={{width:30,height:30,borderWidth:3}}/>
+                    <div>Fetching data and running backtest...</div>
+                  </div>
+                </div>
+              )}
+
+              {result && (
+                <div className="panel">
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                    <div>
+                      <span style={{color:"var(--accent)",fontWeight:700,fontSize:16}}>{result.ticker}</span>
+                      <span style={{color:"var(--muted)",fontSize:12,marginLeft:12}}>{result.strategy} · {result.timeframe} · {result.depth_days}d · {result.leverage}x</span>
+                    </div>
+                  </div>
+
+                  <div className="metrics-grid">
+                    <div className="metric">
+                      <div className="metric-label">Trades</div>
+                      <div className="metric-value accent">{result.total_trades}</div>
+                      <div className="metric-sub">margin ${(result.deposit * result.margin_pct / 100).toFixed(0)} / trade</div>
+                    </div>
+                    <div className="metric">
+                      <div className="metric-label">Win Rate</div>
+                      <div className={`metric-value ${result.win_rate >= 50 ? "green" : "red"}`}>{result.win_rate.toFixed(1)}%</div>
+                      <div className="metric-sub">{Math.round(result.total_trades * result.win_rate / 100)} / {result.total_trades} wins</div>
+                    </div>
+                    <div className="metric">
+                      <div className="metric-label">Sharpe</div>
+                      <div className={`metric-value ${result.sharpe_ratio >= 1 ? "green" : result.sharpe_ratio >= 0 ? "" : "red"}`}>
+                        {result.sharpe_ratio.toFixed(2)}
+                      </div>
+                      <div className="metric-sub">{result.sharpe_ratio >= 1 ? "good" : result.sharpe_ratio >= 0 ? "neutral" : "poor"}</div>
+                    </div>
+                    <div className="metric">
+                      <div className="metric-label">Net PnL</div>
+                      <div className={`metric-value ${result.net_pnl >= 0 ? "green" : "red"}`}>
+                        {result.net_pnl >= 0 ? "+" : ""}{result.net_pnl.toFixed(2)}%
+                      </div>
+                      <div className="metric-sub" style={{color: result.net_pnl_usdt >= 0 ? "var(--green)" : "var(--red)"}}>
+                        {result.net_pnl_usdt >= 0 ? "+" : ""}${result.net_pnl_usdt.toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="metric">
+                      <div className="metric-label">Max DD</div>
+                      <div className={`metric-value ${result.max_drawdown_pct < 10 ? "green" : result.max_drawdown_pct < 20 ? "" : "red"}`}>
+                        -{result.max_drawdown_pct.toFixed(1)}%
+                      </div>
+                      <div className="metric-sub">-${result.max_drawdown_usdt.toFixed(2)}</div>
+                    </div>
+                    <div className="metric">
+                      <div className="metric-label">Final Balance</div>
+                      <div className={`metric-value ${result.final_balance >= result.deposit ? "green" : "red"}`}>
+                        ${result.final_balance.toLocaleString(undefined,{maximumFractionDigits:0})}
+                      </div>
+                      <div className="metric-sub">deposit ${result.deposit.toLocaleString()}</div>
+                    </div>
+                  </div>
+
+                  {result.trades.length > 0 && (
+                    <div className="chart-wrap">
+                      <EquityChart trades={result.trades} />
+                    </div>
+                  )}
+
+                  {result.trades.length > 0 && (
+                    <div style={{overflowX:"auto",maxHeight:320,overflowY:"auto"}}>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Dir</th>
+                            <th>Entry Time</th>
+                            <th>Exit Time</th>
+                            <th>Entry</th>
+                            <th>Exit</th>
+                            <th>PnL</th>
+                            <th>Reason</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {result.trades.map((t, i) => (
+                            <tr key={i}>
+                              <td style={{color:"var(--muted)"}}>{i + 1}</td>
+                              <td><span className={`tag ${t.direction === "LONG" ? "tag-long" : "tag-short"}`}>{t.direction}</span></td>
+                              <td style={{color:"var(--muted)",fontSize:11}}>{formatDate(t.entry_time)}</td>
+                              <td style={{color:"var(--muted)",fontSize:11}}>{formatDate(t.exit_time)}</td>
+                              <td>{t.entry_price.toFixed(2)}</td>
+                              <td>{t.exit_price.toFixed(2)}</td>
+                              <td><PnlCell val={t.pnl} /></td>
+                              <td><span className={`tag tag-${t.exit_reason.toLowerCase()}`}>{t.exit_reason}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <FeedbackSection wallet={wallet} />
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
