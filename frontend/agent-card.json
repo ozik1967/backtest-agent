@@ -1,7 +1,7 @@
 {
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "BacktestStrategyAgent",
-  "description": "AI-powered backtesting agent for crypto trading strategies. Supports MA Cross, EMA Cross, RSI, Bollinger Bands, CVD, LSPR, Funding Rate on Bybit Futures data. Pay-per-use via x402 on Mantle.",
+  "description": "AI-powered backtesting agent for crypto trading strategies. Supports MA Cross, EMA Cross, RSI, Bollinger Bands, MACD, CVD, Funding Rate on Bybit Futures data. Pay-per-use via x402 on Mantle.",
   "image": "https://alphaterminal.live/logo.png",
   "services": [
     { "name": "web", "endpoint": "https://alphaterminal.live" },
@@ -11,7 +11,7 @@
   "active": true,
   "supportedTrust": ["reputation"],
   "strategies": [
-    "MA_CROSS", "EMA_CROSS", "RSI", "BOLLINGER", "CVD", "LSPR", "FUNDING_RATE"
+    "MA_CROSS", "EMA_CROSS", "RSI", "BOLLINGER", "MACD", "CVD", "FUNDING_RATE"
   ],
   "dataSource": "Bybit Futures (up to 180 days)",
   "paymentToken": "MNT",
