@@ -562,6 +562,42 @@
         try {
           const ticker = form.customTicker || form.ticker;
 
+          // Shared params for both /validate and /backtest
+          const params = {
+            ticker,
+            strategy: form.strategy,
+            timeframe: form.timeframe,
+            depth_days: parseInt(form.depthDays),
+            deposit: parseFloat(form.deposit),
+            margin_pct: parseFloat(form.marginPct),
+            leverage: parseFloat(form.leverage),
+            sl_pct: parseFloat(form.slPct),
+            tp_pct: parseFloat(form.tpPct),
+            direction: form.direction,
+            macd_fast: parseInt(form.macdFast),
+            macd_slow: parseInt(form.macdSlow),
+            macd_signal: parseInt(form.macdSignal),
+          };
+          if (hasMaPeriods) {
+            params.fast_period = parseInt(form.fastPeriod);
+            params.slow_period = parseInt(form.slowPeriod);
+          }
+
+          // Step 1: Validate BEFORE payment — never charge for a bad request
+          const validateResp = await fetch(`${API_BASE}/validate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(params),
+          });
+          const validateData = await validateResp.json();
+          if (validateData.status === "error") {
+            setError(validateData.message || (validateData.errors && validateData.errors.join(", ")) || "Ошибка валидации");
+            setLoading(false);
+            return;
+          }
+          if (validateData.warnings?.length) setWarnings(validateData.warnings);
+
+          // Step 2: Payment (only after validation passes)
           let txHash = null;
           if (wallet) {
             try {
@@ -573,33 +609,11 @@
             }
           }
 
-          const body = {
-            ticker,
-            strategy: form.strategy,
-            timeframe: form.timeframe,
-            depth_days: parseInt(form.depthDays),
-            deposit: parseFloat(form.deposit),
-            margin_pct: parseFloat(form.marginPct),
-            leverage: parseFloat(form.leverage),
-            sl_pct: parseFloat(form.slPct),
-            tp_pct: parseFloat(form.tpPct),
-            direction: form.direction,
-            ma_type: form.maType,
-            macd_fast: parseInt(form.macdFast),
-            macd_slow: parseInt(form.macdSlow),
-            macd_signal: parseInt(form.macdSignal),
-            tx_hash: txHash,
-          };
-
-          if (hasMaPeriods) {
-            body.fast_period = parseInt(form.fastPeriod);
-            body.slow_period = parseInt(form.slowPeriod);
-          }
-
+          // Step 3: Run backtest
           const resp = await fetch(`${API_BASE}/backtest`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
+            body: JSON.stringify({ ...params, ma_type: form.maType, tx_hash: txHash }),
           });
 
           const data = await resp.json();
