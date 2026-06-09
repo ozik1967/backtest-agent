@@ -425,11 +425,11 @@
 
     function ReputationBadge({ data }) {
       if (!data || data.totalFeedbacks === 0) return null;
-      const score = data.averageScore !== null ? `★ ${data.averageScore}/100` : "★ —";
+      const n = data.totalFeedbacks;
       return (
-        <a className="rep-badge" href={data.explorerUrl} target="_blank" rel="noopener noreferrer"
-           title="On-chain reputation · ERC-8004 ReputationRegistry · Mantle Mainnet">
-          {score} · {data.totalFeedbacks} on-chain {data.totalFeedbacks === 1 ? "feedback" : "feedbacks"}
+        <a className="rep-badge" href={data.explorer} target="_blank" rel="noopener noreferrer"
+           title="ERC-8004 ReputationRegistry · Mantle Mainnet · Verified AI agent feedbacks">
+          ✅ {n} verified agent {n === 1 ? "feedback" : "feedbacks"} on-chain
         </a>
       );
     }
