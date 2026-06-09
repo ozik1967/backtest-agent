@@ -98,10 +98,34 @@ backtest-agent/
 ├── contracts/
 │   └── BacktestAgentRegistry.sol  # ERC-8004 contract
 ├── deploy/
-│   ├── deploy.js               # Hardhat deployment
-│   └── hardhat.config.js       # Network config
-└── README.md
+│   ├── deploy.js               # Deploy custom registry
+│   ├── hardhat.config.js       # Network config
+│   └── register_official.js   # Register in official ERC-8004 registry
+└── demo_agent.py               # x402 AI agent demo
 ```
+
+## Register in Official ERC-8004 Registry
+```bash
+cd deploy
+npm install
+
+# Testnet (Mantle Sepolia):
+PRIVATE_KEY=0x... node register_official.js
+
+# Mainnet (after testnet success):
+PRIVATE_KEY=0x... node register_official.js --mainnet
+
+# With IPFS agent card URI:
+PRIVATE_KEY=0x... AGENT_URI=ipfs://Qm... node register_official.js
+```
+
+### Official Registry Addresses
+| Network | Contract | Address |
+|---|---|---|
+| Mantle Mainnet (5000) | IdentityRegistry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
+| Mantle Mainnet (5000) | ReputationRegistry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+| Mantle Sepolia (5003) | IdentityRegistry | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| Mantle Sepolia (5003) | ReputationRegistry | `0x8004B663056A597Dffe9eCcC1965A193B7388713` |
 
 ## Hackathon
 **Mantle Turing Test Hackathon 2026**
