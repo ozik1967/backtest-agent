@@ -66,6 +66,12 @@
     }
     .wallet-btn:hover { opacity: 0.85; }
     .wallet-btn.connected { background: #1a3a2a; color: var(--accent); border: 1px solid var(--accent); }
+    .rep-badge {
+      font-size: 11px; color: #f0c040; text-decoration: none;
+      border: 1px solid #f0c04044; border-radius: 4px;
+      padding: 3px 8px; white-space: nowrap; opacity: 0.85;
+    }
+    .rep-badge:hover { opacity: 1; }
 
     .main {
       display: grid;
@@ -417,6 +423,17 @@
       return <canvas ref={ref} />;
     }
 
+    function ReputationBadge({ data }) {
+      if (!data || data.totalFeedbacks === 0) return null;
+      const score = data.averageScore !== null ? `★ ${data.averageScore}/100` : "★ —";
+      return (
+        <a className="rep-badge" href={data.explorerUrl} target="_blank" rel="noopener noreferrer"
+           title="On-chain reputation · ERC-8004 ReputationRegistry · Mantle Mainnet">
+          {score} · {data.totalFeedbacks} on-chain {data.totalFeedbacks === 1 ? "feedback" : "feedbacks"}
+        </a>
+      );
+    }
+
     function FeedbackSection({ agentId, contractAddress, wallet }) {
       const [score, setScore] = useState(0);
       const [hover, setHover] = useState(0);
@@ -491,6 +508,14 @@
       const [result, setResult] = useState(null);
       const [error, setError] = useState(null);
       const [warnings, setWarnings] = useState([]);
+      const [reputation, setReputation] = useState(null);
+
+      useEffect(() => {
+        fetch(`${API_BASE}/reputation`)
+          .then(r => r.json())
+          .then(d => setReputation(d))
+          .catch(() => {});
+      }, []);
 
       const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
@@ -636,9 +661,12 @@
         <>
           <header>
             <div className="logo">alpha<span>terminal</span></div>
-            <button className={`wallet-btn ${wallet ? "connected" : ""}`} onClick={connectWallet}>
-              {wallet ? `✓ ${shortWallet}` : "Connect MetaMask"}
-            </button>
+            <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+              <ReputationBadge data={reputation} />
+              <button className={`wallet-btn ${wallet ? "connected" : ""}`} onClick={connectWallet}>
+                {wallet ? `✓ ${shortWallet}` : "Connect MetaMask"}
+              </button>
+            </div>
           </header>
 
           <div className="main">
