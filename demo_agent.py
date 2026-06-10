@@ -181,11 +181,12 @@ def step2_pay(request_hash: str) -> tuple[str, str]:
         "value":    int(payment["amount"]),
         # request_hash embedded in tx data: binds the request to the payment on-chain
         "data":     request_hash,
-        "gas":      40_000,
         "gasPrice": w3.eth.gas_price,
         "nonce":    w3.eth.get_transaction_count(account.address),
         "chainId":  payment["chainId"],
     }
+    # Mantle's gas model needs estimation (simple transfers cost far more than 21k)
+    tx["gas"] = int(w3.eth.estimate_gas(tx) * 1.2)
     signed  = account.sign_transaction(tx)
     tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
     tx_hex  = tx_hash.hex()
@@ -282,10 +283,11 @@ def step6_give_feedback(cid: str, strategy: str) -> str:
     ).build_transaction({
         "from":     account.address,
         "nonce":    w3.eth.get_transaction_count(account.address),
-        "gas":      300_000,
         "gasPrice": w3.eth.gas_price,
         "chainId":  REP_NET["chain_id"],
     })
+    # Mantle's gas model needs estimation; build_transaction estimates, add 20% margin
+    tx["gas"] = int(tx["gas"] * 1.2)
 
     signed  = account.sign_transaction(tx)
     tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
