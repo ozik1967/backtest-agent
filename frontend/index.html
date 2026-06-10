@@ -343,7 +343,7 @@
       ? "http://localhost:8000/api"
       : "/api";
 
-    const MANTLE_CHAIN_ID = "0x138B"; // 5003 Sepolia testnet
+    const MANTLE_CHAIN_ID = "0x1388"; // 5000 Mantle Mainnet
     const CONTRACT_ADDRESS = "0xA05eb19EaeB861a70450108cA0bA4734f0996811";
     const AGENT_WALLET = "0x0eF0Fa79e214f2a86D92EB1f5519CfF8ba30604e";
     const PAYMENT_AMOUNT = "0x2386F26FC10000"; // 0.01 MNT in wei (hex)
@@ -578,10 +578,10 @@
                 method: "wallet_addEthereumChain",
                 params: [{
                   chainId: MANTLE_CHAIN_ID,
-                  chainName: "Mantle Sepolia Testnet",
+                  chainName: "Mantle",
                   nativeCurrency: { name: "MNT", symbol: "MNT", decimals: 18 },
-                  rpcUrls: ["https://rpc.sepolia.mantle.xyz"],
-                  blockExplorerUrls: ["https://explorer.sepolia.mantle.xyz"],
+                  rpcUrls: ["https://rpc.mantle.xyz"],
+                  blockExplorerUrls: ["https://explorer.mantle.xyz"],
                 }]
               });
             }
