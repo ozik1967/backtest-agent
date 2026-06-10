@@ -67,11 +67,23 @@
     .wallet-btn:hover { opacity: 0.85; }
     .wallet-btn.connected { background: #1a3a2a; color: var(--accent); border: 1px solid var(--accent); }
     .rep-badge {
-      font-size: 11px; color: #f0c040; text-decoration: none;
+      font-size: 11px; color: #f0c040; background: none;
       border: 1px solid #f0c04044; border-radius: 4px;
-      padding: 3px 8px; white-space: nowrap; opacity: 0.85;
+      padding: 3px 8px; white-space: nowrap; opacity: 0.85; cursor: pointer;
+      font-family: inherit;
     }
     .rep-badge:hover { opacity: 1; }
+    .rep-dropdown {
+      position: absolute; top: 100%; right: 0; margin-top: 6px; z-index: 50;
+      background: var(--panel, #14181f); border: 1px solid #f0c04044; border-radius: 6px;
+      padding: 10px 12px; min-width: 320px; font-size: 11px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    }
+    .rep-item { padding: 6px 0; border-bottom: 1px solid #ffffff11; }
+    .rep-item:last-child { border-bottom: none; }
+    .rep-item a { color: #4da6ff; text-decoration: none; margin-right: 10px; }
+    .rep-item a:hover { text-decoration: underline; }
+    .rep-item .rep-meta { color: #888; margin-bottom: 2px; }
 
     .main {
       display: grid;
@@ -424,13 +436,43 @@
     }
 
     function ReputationBadge({ data }) {
+      const [open, setOpen] = useState(false);
       if (!data || data.totalFeedbacks === 0) return null;
       const n = data.totalFeedbacks;
+      const ipfsLink = (uri) => uri && uri.startsWith("ipfs://")
+        ? `https://gateway.pinata.cloud/ipfs/${uri.slice(7)}`
+        : uri;
       return (
-        <a className="rep-badge" href={data.explorer} target="_blank" rel="noopener noreferrer"
-           title="ERC-8004 ReputationRegistry · Mantle Mainnet · Verified AI agent feedbacks">
-          ✅ {n} verified agent {n === 1 ? "feedback" : "feedbacks"} on-chain
-        </a>
+        <div style={{position:"relative"}}>
+          <button className="rep-badge" onClick={() => setOpen(o => !o)}
+             title="ERC-8004 ReputationRegistry · Mantle Mainnet · Verifiable AI agent feedbacks">
+            ✅ {n} verifiable agent {n === 1 ? "feedback" : "feedbacks"} on-chain {open ? "▴" : "▾"}
+          </button>
+          {open && (
+            <div className="rep-dropdown">
+              <div style={{color:"#f0c040", marginBottom:"6px", fontWeight:"bold"}}>
+                ERC-8004 Reputation · agentId {data.agentId}
+              </div>
+              {(data.feedbacks || []).map((f, i) => (
+                <div className="rep-item" key={i}>
+                  <div className="rep-meta">
+                    {f.client.slice(0,6)}...{f.client.slice(-4)} · score {f.value} · {f.tag2 || f.tag1}
+                  </div>
+                  <a href={`https://explorer.mantle.xyz/tx/${f.feedbackTx}`} target="_blank" rel="noopener noreferrer">Mantlescan ↗</a>
+                  {f.proofURI && (
+                    <a href={ipfsLink(f.proofURI)} target="_blank" rel="noopener noreferrer">IPFS proof ↗</a>
+                  )}
+                </div>
+              ))}
+              {(!data.feedbacks || data.feedbacks.length === 0) && (
+                <div className="rep-item rep-meta">
+                  {n} feedback{n === 1 ? "" : "s"} on-chain ·{" "}
+                  <a href={data.explorer} target="_blank" rel="noopener noreferrer">view registry ↗</a>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       );
     }
 
