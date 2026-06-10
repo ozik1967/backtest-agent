@@ -118,6 +118,11 @@ def short(h: str) -> str:
     return f"{h[:6]}...{h[-4:]}" if h and len(h) > 12 else h
 
 
+def raw_tx(signed) -> bytes:
+    """web3.py v7 uses .raw_transaction, v6 uses .rawTransaction — support both."""
+    return getattr(signed, "raw_transaction", None) or signed.rawTransaction
+
+
 # ── IPFS via Pinata ───────────────────────────────────────────────────────────
 def upload_to_pinata(obj: dict, name: str) -> str:
     """Upload JSON to IPFS via Pinata. Returns CID."""
@@ -188,7 +193,7 @@ def step2_pay(request_hash: str) -> tuple[str, str]:
     # Mantle's gas model needs estimation (simple transfers cost far more than 21k)
     tx["gas"] = int(w3.eth.estimate_gas(tx) * 1.2)
     signed  = account.sign_transaction(tx)
-    tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+    tx_hash = w3.eth.send_raw_transaction(raw_tx(signed))
     tx_hex  = tx_hash.hex()
     if not tx_hex.startswith("0x"):
         tx_hex = "0x" + tx_hex
@@ -290,7 +295,7 @@ def step6_give_feedback(cid: str, strategy: str) -> str:
     tx["gas"] = int(tx["gas"] * 1.2)
 
     signed  = account.sign_transaction(tx)
-    tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+    tx_hash = w3.eth.send_raw_transaction(raw_tx(signed))
     tx_hex  = tx_hash.hex()
     if not tx_hex.startswith("0x"):
         tx_hex = "0x" + tx_hex
