@@ -7,11 +7,17 @@
  *
  * Usage:
  *   cd deploy
+ *   # Test on Sepolia first (free gas, agentId 128):
+ *   CLIENT_PRIVATE_KEY=0x<client_key> node client_feedback.js --testnet
+ *   # Then mainnet (agentId 113):
  *   CLIENT_PRIVATE_KEY=0x<client_key> node client_feedback.js
  *
  * Requirements:
- *   - CLIENT_PRIVATE_KEY wallet must have MNT on Mantle Mainnet for gas
- *   - This is NOT the owner wallet (0x0eF0Fa79...)
+ *   - CLIENT_PRIVATE_KEY wallet must have MNT for gas on the chosen network
+ *   - Caller must NOT be the owner/operator of the agent (no self-feedback)
+ *
+ * ABI verified against deployed implementation 0x16e0FA7f7C56B9a767E34B192B51f921BE31dA34
+ * (same on both networks) — selectors giveFeedback/getSummary/getClients all present.
  *
  * Saves result to deploy/deployment.json under key "reputation_client_feedback".
  */
@@ -20,9 +26,27 @@ const { ethers } = require("ethers");
 const fs   = require("fs");
 const path = require("path");
 
-const MAINNET_RPC          = "https://rpc.mantle.xyz";
-const REPUTATION_REGISTRY  = "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63";
-const AGENT_ID             = 113;
+const NETWORKS = {
+  mainnet: {
+    name:     "Mantle Mainnet",
+    chainId:  5000,
+    rpc:      "https://rpc.mantle.xyz",
+    registry: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
+    agentId:  113,
+    explorer: "https://explorer.mantle.xyz/tx/",
+  },
+  testnet: {
+    name:     "Mantle Sepolia",
+    chainId:  5003,
+    rpc:      "https://rpc.sepolia.mantle.xyz",
+    registry: "0x8004B663056A597Dffe9eCcC1965A193B7388713",
+    agentId:  128,
+    explorer: "https://explorer.sepolia.mantle.xyz/tx/",
+  },
+};
+
+const isTestnet = process.argv.includes("--testnet");
+const NET = isTestnet ? NETWORKS.testnet : NETWORKS.mainnet;
 
 const ABI = [
   "function giveFeedback(uint256 agentId, int128 value, uint8 valueDecimals, string tag1, string tag2, string endpoint, string feedbackURI, bytes32 feedbackHash) external",
@@ -36,27 +60,29 @@ async function main() {
     process.exit(1);
   }
 
-  const provider = new ethers.JsonRpcProvider(MAINNET_RPC);
+  const provider = new ethers.JsonRpcProvider(NET.rpc);
   const wallet   = new ethers.Wallet(privateKey, provider);
   const balance  = await provider.getBalance(wallet.address);
 
   console.log("=".repeat(60));
   console.log("  ERC-8004 ReputationRegistry — Client Feedback");
   console.log("=".repeat(60));
-  console.log(`  Registry : ${REPUTATION_REGISTRY}`);
-  console.log(`  AgentId  : ${AGENT_ID}  (BacktestStrategyAgent)`);
+  console.log(`  Network  : ${NET.name} (chainId ${NET.chainId})`);
+  console.log(`  Registry : ${NET.registry}`);
+  console.log(`  AgentId  : ${NET.agentId}  (BacktestStrategyAgent)`);
   console.log(`  Client   : ${wallet.address}`);
   console.log(`  Balance  : ${ethers.formatEther(balance)} MNT`);
 
   if (balance === 0n) {
-    console.error("\n❌  Client wallet has 0 MNT. Top up with MNT on Mantle Mainnet for gas.");
+    console.error(`\n❌  Client wallet has 0 MNT on ${NET.name}. Top up for gas.`);
+    if (isTestnet) console.error("     Faucet: https://faucet.sepolia.mantle.xyz");
     process.exit(1);
   }
 
-  const registry = new ethers.Contract(REPUTATION_REGISTRY, ABI, wallet);
+  const registry = new ethers.Contract(NET.registry, ABI, wallet);
 
   const tx = await registry.giveFeedback(
-    AGENT_ID,
+    NET.agentId,
     100,                         // value: int128, score 0–100
     0,                           // valueDecimals
     "backtest-service",          // tag1 — service category
@@ -86,16 +112,19 @@ async function main() {
   console.log("\n  ✅  Feedback submitted!");
   console.log(`  feedbackIndex : ${feedbackIndex ?? "(check explorer)"}`);
   console.log(`  Block         : ${receipt.blockNumber}`);
-  console.log(`  Explorer      : https://explorer.mantle.xyz/tx/${tx.hash}`);
+  console.log(`  Explorer      : ${NET.explorer}${tx.hash}`);
 
   // Save to deployment.json
   const deployFile = path.join(__dirname, "deployment.json");
   let existing = {};
   try { existing = JSON.parse(fs.readFileSync(deployFile, "utf8")); } catch {}
 
-  existing.reputation_client_feedback = {
-    registry:      REPUTATION_REGISTRY,
-    agentId:       AGENT_ID,
+  const key = isTestnet ? "reputation_client_feedback_testnet" : "reputation_client_feedback";
+  existing[key] = {
+    network:       NET.name,
+    chainId:       NET.chainId,
+    registry:      NET.registry,
+    agentId:       NET.agentId,
     clientWallet:  wallet.address,
     score:         100,
     tag1:          "backtest-service",
@@ -103,12 +132,12 @@ async function main() {
     feedbackIndex: feedbackIndex ? Number(feedbackIndex) : null,
     txHash:        tx.hash,
     blockNumber:   receipt.blockNumber,
-    explorerUrl:   `https://explorer.mantle.xyz/tx/${tx.hash}`,
+    explorerUrl:   `${NET.explorer}${tx.hash}`,
     submittedAt:   new Date().toISOString(),
   };
 
   fs.writeFileSync(deployFile, JSON.stringify(existing, null, 2));
-  console.log("\n  Saved to deploy/deployment.json  (key: \"reputation_client_feedback\")");
+  console.log(`\n  Saved to deploy/deployment.json  (key: "${key}")`);
   console.log();
 }
 
