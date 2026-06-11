@@ -545,6 +545,8 @@
         macdFast: 12,
         macdSlow: 26,
         macdSignal: 9,
+        // Funding Rate params
+        fundingThreshold: 0.00005,
       });
       const [loading, setLoading] = useState(false);
       const [result, setResult] = useState(null);
@@ -644,6 +646,7 @@
             macd_fast: parseInt(form.macdFast),
             macd_slow: parseInt(form.macdSlow),
             macd_signal: parseInt(form.macdSignal),
+            funding_threshold: parseFloat(form.fundingThreshold),
           };
           if (hasMaPeriods) {
             params.fast_period = parseInt(form.fastPeriod);
@@ -822,6 +825,19 @@
                       </div>
                     )}
                   </>
+                )}
+
+                {/* Funding Rate params */}
+                {form.strategy === "FUNDING_RATE" && (
+                  <div className="field">
+                    <label>FUNDING THRESHOLD</label>
+                    <input type="number" min="0.00001" max="0.01" step="0.00001"
+                      value={form.fundingThreshold}
+                      onChange={e => set("fundingThreshold", e.target.value)} />
+                    <div style={{fontSize:10, color:"#888", marginTop:3}}>
+                      Typical BTC funding is ~0.0001 — set threshold below that
+                    </div>
+                  </div>
                 )}
 
                 {/* Deposit */}
