@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BacktestStrategyScanner — powered by Alpha Terminal</title>
   <link rel="icon" type="image/png" href="/favicon.png" />
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -541,6 +541,16 @@
         tpPct: 4,
         depthDays: 90,
         direction: "BOTH",
+        // RSI params
+        rsiPeriod: 14,
+        rsiOverbought: 70,
+        rsiOversold: 30,
+        // Bollinger params
+        bbPeriod: 20,
+        bbStd: 2.0,
+        // CVD params
+        cvdSmooth: 5,
+        cvdThresholdPct: 5.0,
         // MACD params
         macdFast: 12,
         macdSlow: 26,
@@ -643,6 +653,13 @@
             sl_pct: parseFloat(form.slPct),
             tp_pct: parseFloat(form.tpPct),
             direction: form.direction,
+            rsi_period: parseInt(form.rsiPeriod),
+            rsi_overbought: parseFloat(form.rsiOverbought),
+            rsi_oversold: parseFloat(form.rsiOversold),
+            bb_period: parseInt(form.bbPeriod),
+            bb_std: parseFloat(form.bbStd),
+            cvd_smooth: parseInt(form.cvdSmooth),
+            cvd_threshold_pct: parseFloat(form.cvdThresholdPct),
             macd_fast: parseInt(form.macdFast),
             macd_slow: parseInt(form.macdSlow),
             macd_signal: parseInt(form.macdSignal),
@@ -795,6 +812,68 @@
                     {["5m","15m","1h","4h","1d"].map(tf => <option key={tf}>{tf}</option>)}
                   </select>
                 </div>
+
+                {/* RSI params */}
+                {form.strategy === "RSI" && (
+                  <>
+                    <div className="field">
+                      <label>RSI PERIOD</label>
+                      <input type="number" min="2" max="100" step="1"
+                        value={form.rsiPeriod}
+                        onChange={e => set("rsiPeriod", e.target.value)} />
+                    </div>
+                    <div className="row-2">
+                      <div className="field">
+                        <label>OVERSOLD</label>
+                        <input type="number" min="1" max="49" step="1"
+                          value={form.rsiOversold}
+                          onChange={e => set("rsiOversold", e.target.value)} />
+                      </div>
+                      <div className="field">
+                        <label>OVERBOUGHT</label>
+                        <input type="number" min="51" max="99" step="1"
+                          value={form.rsiOverbought}
+                          onChange={e => set("rsiOverbought", e.target.value)} />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Bollinger params */}
+                {form.strategy === "BOLLINGER" && (
+                  <div className="row-2">
+                    <div className="field">
+                      <label>BB PERIOD</label>
+                      <input type="number" min="5" max="100" step="1"
+                        value={form.bbPeriod}
+                        onChange={e => set("bbPeriod", e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>STD MULT</label>
+                      <input type="number" min="0.5" max="5" step="0.1"
+                        value={form.bbStd}
+                        onChange={e => set("bbStd", e.target.value)} />
+                    </div>
+                  </div>
+                )}
+
+                {/* CVD params */}
+                {form.strategy === "CVD" && (
+                  <div className="row-2">
+                    <div className="field">
+                      <label>SMOOTH PERIOD</label>
+                      <input type="number" min="1" max="50" step="1"
+                        value={form.cvdSmooth}
+                        onChange={e => set("cvdSmooth", e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>THRESHOLD %</label>
+                      <input type="number" min="0.1" max="50" step="0.1"
+                        value={form.cvdThresholdPct}
+                        onChange={e => set("cvdThresholdPct", e.target.value)} />
+                    </div>
+                  </div>
+                )}
 
                 {/* MACD params */}
                 {form.strategy === "MACD" && (
